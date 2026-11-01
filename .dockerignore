@@ -1,0 +1,12 @@
+.git
+.gitignore
+.github
+.vs
+.vscode
+bin
+obj
+docs
+*.pdf
+manual.txt
+README.md
+requests.http

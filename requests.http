@@ -1,0 +1,112 @@
+@host = http://localhost:10000
+@contentType = application/json
+
+### Проверка работы приложения
+GET {{host}}/
+
+### Информация о приложении и хранилище
+GET {{host}}/api/info
+
+### Список грузов
+GET {{host}}/api/cargoes
+
+### Один груз по идентификатору
+GET {{host}}/api/cargoes/1
+
+### Несуществующий груз — 404 Not Found
+GET {{host}}/api/cargoes/999
+
+### Поиск по тексту
+GET {{host}}/api/cargoes?search=ноут
+
+### Поиск через отдельный endpoint
+GET {{host}}/api/cargoes/search?search=электроника
+
+### Фильтрация по категории и наличию
+GET {{host}}/api/cargoes?category=Электроника&available=true
+
+### Фильтрация по весу и сортировка
+GET {{host}}/api/cargoes?minWeight=10&sortBy=weight
+
+### LINQ: доступные грузы, сортировка по названию
+GET {{host}}/api/cargoes/available
+
+### LINQ: грузы тяжелее 10 кг
+GET {{host}}/api/cargoes/heavy?minWeight=10
+
+### LINQ: статистика по категориям
+GET {{host}}/api/cargoes/stats
+
+### LINQ: грузы за последние 3650 дней
+GET {{host}}/api/cargoes/recent?days=3650
+
+### Создание груза — 201 Created
+POST {{host}}/api/cargoes
+Content-Type: {{contentType}}
+
+{
+  "name": "Тестовый груз",
+  "category": "Проверка",
+  "quantity": 10,
+  "location": "Сектор T-1",
+  "weight": 1.5,
+  "description": "Объект для проверки полного цикла CRUD.",
+  "isAvailable": true,
+  "supplier": "ТестПоставщик"
+}
+
+### Некорректные данные — 400 Bad Request
+POST {{host}}/api/cargoes
+Content-Type: {{contentType}}
+
+{
+  "name": "",
+  "category": "",
+  "quantity": 0,
+  "location": "",
+  "weight": 0,
+  "description": "",
+  "supplier": ""
+}
+
+### Изменение груза — 200 OK
+PUT {{host}}/api/cargoes/7
+Content-Type: {{contentType}}
+
+{
+  "name": "Тестовый груз (изменён)",
+  "category": "Проверка",
+  "quantity": 12,
+  "location": "Сектор T-2",
+  "weight": 2,
+  "description": "Груз обновлён через PUT.",
+  "isAvailable": false,
+  "supplier": "ТестПоставщик"
+}
+
+### Изменение несуществующего груза — 404 Not Found
+PUT {{host}}/api/cargoes/999
+Content-Type: {{contentType}}
+
+{
+  "name": "Нет такого",
+  "category": "Проверка",
+  "quantity": 1,
+  "location": "Сектор Z",
+  "weight": 1,
+  "description": "Объект не существует.",
+  "isAvailable": true,
+  "supplier": "ТестПоставщик"
+}
+
+### Удаление груза — 204 No Content
+DELETE {{host}}/api/cargoes/7
+
+### OpenAPI-документ
+GET {{host}}/openapi/v1.json
+
+### Интерактивная документация Scalar
+GET {{host}}/scalar/v1
+
+### Графический интерфейс Swagger UI
+GET {{host}}/swagger

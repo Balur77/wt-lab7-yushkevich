@@ -297,6 +297,10 @@ docker compose up --build
 7. Убедиться, что в логах есть подключение к PostgreSQL, проверка и применение
    миграций, запуск HTTP API.
 
+Альтернативно можно использовать Blueprint [`render.yaml`](render.yaml):
+он создаёт PostgreSQL и Web Service и автоматически передаёт строку подключения
+через `fromDatabase`.
+
 При каждом `git push` Render выполняет новый deploy. При старте приложения
 `Database.Migrate()` автоматически применяет новые миграции, поэтому структура
 PostgreSQL обновляется без ручного SQL.

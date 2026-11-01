@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<title>WT-7 — PostgreSQL и Entity Framework Core — Юшкевич Владислав</title>
+<link rel="stylesheet" href="report/report.css" />
+</head>
+<body>
+
+<!-- 01. Обложка -->
+<section class="sheet cover">
+    <div class="cover-inner">
+        <div class="cover-top">
+            <div class="cover-brand">
+                <span class="cover-mark">◆</span>
+                <span class="brand-name">Cargo<span>Flow</span></span>
+            </div>
+            <span class="wt">ЛАБОРАТОРНАЯ РАБОТА · WT-7</span>
+        </div>
+
+        <div class="cover-kicker">Отчёт о выполнении работы</div>
+        <h1>PostgreSQL и Entity Framework Core</h1>
+        <div class="cover-sub">
+            ORM, Code First, миграции и публикация на Render.
+            Продолжение проекта CargoFlow API из лабораторной работы WT-6.
+        </div>
+
+        <div class="pill-row">
+            <span class="pill">ASP.NET Core 9</span>
+            <span class="pill">EF Core 9</span>
+            <span class="pill">PostgreSQL 16</span>
+            <span class="pill">Code First</span>
+            <span class="pill">Migrations</span>
+            <span class="pill">Docker</span>
+            <span class="pill">Render</span>
+        </div>
+
+        <div class="cover-spacer"></div>
+
+        <div class="cover-info">
+            <div>
+                <span class="lbl">Студент</span>
+                <span class="val">Юшкевич Владислав</span>
+            </div>
+            <div>
+                <span class="lbl">Дисциплина</span>
+                <span class="val">Веб-технологии · лабораторная WT-7</span>
+            </div>
+            <div>
+                <span class="lbl">Дата</span>
+                <span class="val">2 ноября 2026 г.</span>
+            </div>
+            <div>
+                <span class="lbl">Тема</span>
+                <span class="val">ORM, EF Core, Code First, миграции, PostgreSQL</span>
+            </div>
+            <div>
+                <span class="lbl">Исходный проект</span>
+                <span class="val">wt-lab6-6minimalapi-yushkevich</span>
+            </div>
+            <div>
+                <span class="lbl">Новый проект</span>
+                <span class="val">wt-lab7-7postgres-efcore-yushkevich</span>
+            </div>
+        </div>
+
+        <div class="links-box">
+            Git-репозиторий: <a href="https://github.com/Balur77/wt-lab7-7postgres-efcore-yushkevich">github.com/Balur77/wt-lab7-7postgres-efcore-yushkevich</a><br />
+            Render: <a href="https://wt-lab7-7postgres-efcore-yushkevich.onrender.com">wt-lab7-7postgres-efcore-yushkevich.onrender.com</a>
+            <span class="small">(адрес активируется после создания Web Service)</span>
+        </div>
+
+        <div class="cover-sign">
+            <div>Отчёт составлен по фактически выполненной работе</div>
+            <div>Подпись: <span class="sign-line"></span> <span class="sign-name">Юшкевич В.</span></div>
+        </div>
+    </div>
+</section>
+
+<!-- 02. Цель и задачи -->
+<section class="sheet">
+    <div class="page-head"><span class="kicker">Введение</span><span class="page-tag">02 / 13</span></div>
+    <h1>Цель работы и задачи</h1>
+
+    <p class="lead">
+        Цель работы — освоить использование <strong>Entity Framework Core</strong> в
+        ASP.NET Core Minimal API для работы с <strong>PostgreSQL</strong>: подключить ORM,
+        описать модель по подходу <strong>Code First</strong>, создать и применить миграции,
+        заменить хранилище в памяти на базу данных и подготовить приложение к публикации
+        на Render.
+    </p>
+
+    <h3>Задачи</h3>
+    <ol>
+        <li>Скопировать проект WT-6 и сохранить предметную область и контракт API.</li>
+        <li>Подключить пакеты EF Core, Npgsql и инструменты <code>dotnet-ef</code>.</li>
+        <li>Создать <code>AppDbContext</code> и заменить <code>CargoStore</code> на <code>DbSet&lt;Cargo&gt;</code>.</li>
+        <li>Создать миграцию <code>InitialCreate</code> и автоматически создать структуру PostgreSQL.</li>
+        <li>Перенести CRUD на EF Core, добавить LINQ-запросы и валидацию.</li>
+        <li>Изменить модель, создать миграции <code>AddCreatedAt</code>, <code>SeedCargoes</code>, <code>AddSupplier</code>.</li>
+        <li>Настроить автоматическое применение миграций при запуске и публикацию через Docker/Render.</li>
+    </ol>
+
+    <div class="callout">
+        <span class="label">Связь с WT-6</span>
+        Проект WT-6 <code>wt-lab6-6minimalapi-yushkevich</code> использовал
+        <code>List&lt;Cargo&gt;</code> в статическом <code>CargoStore</code>. В WT-7 этот же
+        домен «Склад и логистика» и те же endpoint'ы работают через
+        <code>AppDbContext</code> и PostgreSQL. Файл <code>Data/CargoStore.cs</code> удалён.
+    </div>
+
+    <table class="meta compact">
+        <tr><td style="width:35mm">Проект</td><td>wt-lab7-7postgres-efcore-yushkevich</td></tr>
+        <tr><td>Предметная область</td><td>Склад и логистика, сущность <code>Cargo</code></td></tr>
+        <tr><td>Стек</td><td>.NET 9, ASP.NET Core Minimal API, EF Core 9, Npgsql, PostgreSQL 16</td></tr>
+        <tr><td>Хранение</td><td>PostgreSQL, подход Code First, четыре миграции</td></tr>
+        <tr><td>Документация</td><td><code>/openapi/v1.json</code>, <code>/swagger</code>, <code>/scalar/v1</code></td></tr>
+        <tr><td>Контейнер</td><td>Docker, многоэтапная сборка, порт из <code>PORT</code></td></tr>
+        <tr><td>Публикация</td><td>Render Web Service (Docker) + Render PostgreSQL</td></tr>
+    </table>
+
+    <div class="footer"><span><b>CargoFlow API</b> · WT-7 PostgreSQL + EF Core</span><span class="pnum">02</span></div>
+</section>
+
+<!-- 03. Домен и структура -->
+<section class="sheet">
+    <div class="page-head"><span class="kicker">Предметная область</span><span class="page-tag">03 / 13</span></div>
+    <h1>Домен и структура проекта</h1>
+
+    <p class="lead">
+        CargoFlow автоматизирует учёт грузов на складе. Домен и сущность
+        <code>Cargo</code> перенесены из WT-4, WT-5 и WT-6, поэтому API продолжает
+        уже выбранную предметную область, а не вводит новую.
+    </p>
+
+    <table class="meta compact">
+        <tr><th style="width:34mm">Свойство</th><th style="width:26mm">Тип / ограничение</th><th>Назначение</th></tr>
+        <tr><td><code>Id</code></td><td><code>int</code>, PK</td><td>Идентификатор, генерируется PostgreSQL</td></tr>
+        <tr><td><code>Name</code></td><td><code>varchar(100)</code></td><td>Название груза</td></tr>
+        <tr><td><code>Category</code></td><td><code>varchar(60)</code></td><td>Категория груза</td></tr>
+        <tr><td><code>Quantity</code></td><td><code>int</code></td><td>Количество единиц</td></tr>
+        <tr><td><code>Location</code></td><td><code>varchar(100)</code></td><td>Место хранения на складе</td></tr>
+        <tr><td><code>Weight</code></td><td><code>numeric(18,3)</code></td><td>Вес одной единицы, кг</td></tr>
+        <tr><td><code>Description</code></td><td><code>varchar(300)</code></td><td>Описание груза</td></tr>
+        <tr><td><code>IsAvailable</code></td><td><code>boolean</code></td><td>Признак наличия на складе</td></tr>
+        <tr><td><code>CreatedAt</code></td><td><code>timestamptz</code></td><td>Дата добавления в БД (UTC)</td></tr>
+        <tr><td><code>Supplier</code></td><td><code>varchar(120)</code></td><td>Поставщик груза</td></tr>
+        <tr><td><code>TotalWeight</code></td><td><code>[NotMapped]</code></td><td>Общий вес партии, вычисляется</td></tr>
+        <tr><td><code>Status</code></td><td><code>[NotMapped]</code></td><td>Текстовый статус, вычисляется</td></tr>
+    </table>
+
+    <h3>Структура проекта</h3>
+    <div class="tree">wt-lab7-7postgres-efcore-yushkevich/
+├── Data/
+│   └── AppDbContext.cs                  <span class="c"># DbContext, модель, HasData</span>
+├── Models/
+│   └── Cargo.cs                         <span class="c"># сущность предметной области</span>
+├── Migrations/
+│   ├── 20261101210710_InitialCreate.cs
+│   ├── 20261101210747_AddCreatedAt.cs
+│   ├── 20261101210825_SeedCargoes.cs
+│   ├── 20261101210925_AddSupplier.cs
+│   └── AppDbContextModelSnapshot.cs
+├── docs/                                <span class="c"># отчёт и лог тестирования</span>
+├── Program.cs                           <span class="c"># endpoints, EF Core, Render</span>
+├── appsettings.json                     <span class="c"># демонстрационная строка подключения</span>
+├── Dockerfile
+├── docker-compose.yml                   <span class="c"># PostgreSQL + API локально</span>
+└── wt-lab7-7postgres-efcore-yushkevich.csproj</div>
+
+    <div class="note">
+        <strong>Что не хранится в БД.</strong> Свойства <code>TotalWeight</code> и
+        <code>Status</code> помечены <code>[NotMapped]</code>: они вычисляются в C# и
+        возвращаются в JSON, но не создают лишних столбцов в PostgreSQL.
+    </div>
+
+    <div class="footer"><span><b>CargoFlow API</b> · WT-7 PostgreSQL + EF Core</span><span class="pnum">03</span></div>
+</section>
+
+<!-- 04. DbContext и подключение -->
+<section class="sheet">
+    <div class="page-head"><span class="kicker">Entity Framework Core</span><span class="page-tag">04 / 13</span></div>
+    <h1>DbContext и подключение PostgreSQL</h1>
+
+    <p class="lead">
+        <code>DbContext</code> — основная точка взаимодействия приложения с моделью
+        данных и базой. <code>DbSet&lt;Cargo&gt;</code> представляет набор грузов,
+        с которым выполняются операции чтения, добавления, изменения и удаления.
+    </p>
+
+    <h3>Пакеты и инструменты</h3>
+    <pre class="code">dotnet add package Npgsql.EntityFrameworkCore.PostgreSQL --version 9.0.4
+dotnet add package Microsoft.EntityFrameworkCore.Design --version 9.0.11
+dotnet tool install --global dotnet-ef --version 9.0.11</pre>
+
+    <h3>Data/AppDbContext.cs</h3>
+    <pre class="code">public class AppDbContext : DbContext
+{
+    public AppDbContext(DbContextOptions&lt;AppDbContext&gt; options)
+        : base(options) { }
+
+    public DbSet&lt;Cargo&gt; Cargoes =&gt; Set&lt;Cargo&gt;();
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity&lt;Cargo&gt;(entity =&gt;
+        {
+            entity.ToTable("Cargoes");
+            entity.HasKey(cargo =&gt; cargo.Id);
+            entity.Property(cargo =&gt; cargo.Name).HasMaxLength(100).IsRequired();
+            entity.Property(cargo =&gt; cargo.Weight).HasPrecision(18, 3);
+            entity.HasIndex(cargo =&gt; cargo.Category);
+            entity.HasIndex(cargo =&gt; cargo.IsAvailable);
+            entity.HasIndex(cargo =&gt; cargo.CreatedAt);
+        });
+    }
+}</pre>
+
+    <h3>Регистрация в Program.cs</h3>
+    <pre class="code">var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+var databaseUrl = builder.Configuration["DATABASE_URL"];
+
+if (!string.IsNullOrWhiteSpace(databaseUrl))
+    connectionString = BuildConnectionString(databaseUrl);
+
+builder.Services.AddDbContext&lt;AppDbContext&gt;(options =&gt;
+    options.UseNpgsql(connectionString));</pre>
+
+    <div class="two-col">
+        <div>
+            <h3>Локально</h3>
+            <pre class="code">{
+  "ConnectionStrings": {
+    "DefaultConnection":
+      "Host=localhost;Port=5432;Database=wt_lab7;Username=postgres;Password=***"
+  }
+}</pre>
+        </div>
+        <div>
+            <h3>Render</h3>
+            <pre class="code">DATABASE_URL =
+postgres://user:***@host:5432/database
+
+Internal Database URL
+→ SSL Mode=Disable
+внешний адрес → TLS</pre>
+        </div>
+    </div>
+
+    <div class="note">
+        Настоящий пароль не хранится в Git. В учебном <code>appsettings.json</code>
+        оставлена только демонстрационная строка локального контейнера; для Render
+        значение передаётся переменной окружения <code>DATABASE_URL</code>.
+    </div>
+
+    <div class="footer"><span><b>CargoFlow API</b> · WT-7 PostgreSQL + EF Core</span><span class="pnum">04</span></div>
+</section>
+
+<!-- 05. Миграции -->
+<section class="sheet">
+    <div class="page-head"><span class="kicker">Code First</span><span class="page-tag">05 / 13</span></div>
+    <h1>Миграции: InitialCreate и AddCreatedAt</h1>
+
+    <p class="lead">
+        При подходе <strong>Code First</strong> источником модели является C#-код.
+        EF Core сравнивает текущую модель с предыдущим состоянием и формирует
+        миграцию — инструкцию изменения структуры базы данных.
+    </p>
+
+    <table class="meta compact">
+        <tr><th style="width:42mm">Миграция</th><th>Что изменяет</th></tr>
+        <tr><td><code>InitialCreate</code></td><td>Создаёт таблицу <code>Cargoes</code>, первичный ключ и индексы</td></tr>
+        <tr><td><code>AddCreatedAt</code></td><td>Добавляет столбец <code>CreatedAt</code> и индекс по дате</td></tr>
+        <tr><td><code>SeedCargoes</code></td><td>Добавляет шесть начальных грузов через <code>HasData</code></td></tr>
+        <tr><td><code>AddSupplier</code></td><td>Добавляет столбец <code>Supplier</code> и заполняет его</td></tr>
+    </table>
+
+    <h3>Создание и применение</h3>
+    <pre class="code">dotnet ef migrations add InitialCreate
+dotnet ef migrations add AddCreatedAt
+dotnet ef migrations add SeedCargoes
+dotnet ef migrations add AddSupplier
+
+dotnet ef migrations list
+dotnet ef database update</pre>
+
+    <h3>Фрагмент InitialCreate</h3>
+    <pre class="code">migrationBuilder.CreateTable(
+    name: "Cargoes",
+    columns: table =&gt; new
+    {
+        Id = table.Column&lt;int&gt;(type: "integer", nullable: false)
+            .Annotation("Npgsql:ValueGenerationStrategy",
+                NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+        Name = table.Column&lt;string&gt;(type: "character varying(100)",
+            maxLength: 100, nullable: false),
+        Category = table.Column&lt;string&gt;(type: "character varying(60)",
+            maxLength: 60, nullable: false),
+        Quantity = table.Column&lt;int&gt;(type: "integer", nullable: false),
+        Location = table.Column&lt;string&gt;(type: "character varying(100)",
+            maxLength: 100, nullable: false),
+        Weight = table.Column&lt;decimal&gt;(type: "numeric(18,3)",
+            precision: 18, scale: 3, nullable: false),
+        Description = table.Column&lt;string&gt;(type: "character varying(300)",
+            maxLength: 300, nullable: false),
+        IsAvailable = table.Column&lt;bool&gt;(type: "boolean", nullable: false)
+    },
+    constraints: table =&gt;
+        table.PrimaryKey("PK_Cargoes", x =&gt; x.Id));</pre>
+
+    <h3>Список миграций после выполнения</h3>
+    <pre class="console">$ dotnet ef migrations list
+20261101210710_InitialCreate
+20261101210747_AddCreatedAt
+20261101210825_SeedCargoes
+20261101210925_AddSupplier</pre>
+
+    <div class="callout">
+        <span class="label">Важно</span>
+        <code>EnsureCreated()</code> не используется. Структура базы создаётся только
+        через <code>Database.Migrate()</code>, иначе EF Core обойдёт систему миграций
+        и не сможет корректно применять последующие изменения.
+    </div>
+
+    <div class="footer"><span><b>CargoFlow API</b> · WT-7 PostgreSQL + EF Core</span><span class="pnum">05</span></div>
+</section>
+
+<!-- 06. Seed и изменение модели -->
+<section class="sheet">
+    <div class="page-head"><span class="kicker">Данные и развитие модели</span><span class="page-tag">06 / 13</span></div>
+    <h1>Начальные данные и изменение модели</h1>
+
+    <p class="lead">
+        После первой миграции модель была изменена: добавлены <code>CreatedAt</code>
+        и <code>Supplier</code>. Для каждой изменения создана отдельная миграция,
+        а начальные данные добавлены через <code>HasData</code>, а не вручную SQL-запросами.
+    </p>
+
+    <h3>HasData в AppDbContext</h3>
+    <pre class="code">entity.HasData(
+    new Cargo
+    {
+        Id = 1,
+        Name = "Ноутбуки Dell Latitude 5440",
+        Category = "Электроника",
+        Quantity = 24,
+        Location = "Сектор A-1, стеллаж 3",
+        Weight = 2.4m,
+        Description = "Партия офисных ноутбуков...",
+        IsAvailable = true,
+        CreatedAt = new DateTime(2026, 1, 10, 9, 0, 0, DateTimeKind.Utc),
+        Supplier = "Dell Technologies"
+    },
+    // ... ещё пять грузов
+);</pre>
+
+    <h3>AddSupplier: изменение уже существующей таблицы</h3>
+    <pre class="code">migrationBuilder.AddColumn&lt;string&gt;(
+    name: "Supplier",
+    table: "Cargoes",
+    type: "character varying(120)",
+    maxLength: 120,
+    nullable: false,
+    defaultValue: "");
+
+migrationBuilder.UpdateData(
+    table: "Cargoes",
+    keyColumn: "Id",
+    keyValue: 1,
+    column: "Supplier",
+    value: "Dell Technologies");</pre>
+
+    <h3>Автоматическое применение при запуске</h3>
+    <pre class="code">using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService&lt;AppDbContext&gt;();
+    db.Database.Migrate();
+}</pre>
+
+    <div class="tree">Запуск приложения
+        ↓
+Подключение к PostgreSQL
+        ↓
+Проверка __EFMigrationsHistory
+        ↓
+Применение отсутствующих миграций
+        ↓
+Запуск HTTP API</div>
+
+    <div class="note amber">
+        <strong>Изменение модели без миграции.</strong> Если добавить свойство в C#
+        и не создать миграцию, EF Core будет ожидать столбец, которого нет в базе,
+        и запросы завершатся ошибкой. Поэтому изменение модели всегда сопровождается
+        <code>dotnet ef migrations add</code> и коммитом файлов миграции.
+    </div>
+
+    <div class="footer"><span><b>CargoFlow API</b> · WT-7 PostgreSQL + EF Core</span><span class="pnum">06</span></div>
+</section>
+
+<!-- 07. PostgreSQL -->
+<section class="sheet">
+    <div class="page-head"><span class="kicker">База данных</span><span class="page-tag">07 / 13</span></div>
+    <h1>Структура PostgreSQL</h1>
+
+    <p class="lead">
+        После <code>dotnet ef database update</code> в базе <code>wt_lab7</code>
+        появились таблица предметных данных <code>Cargoes</code> и служебная таблица
+        истории миграций <code>__EFMigrationsHistory</code>.
+    </p>
+
+    <h3>Таблицы в схеме public</h3>
+    <pre class="console">SELECT table_name
+FROM information_schema.tables
+WHERE table_schema = 'public'
+ORDER BY table_name;
+
+      table_name
+-----------------------
+ Cargoes
+ __EFMigrationsHistory</pre>
+
+    <h3>Структура таблицы Cargoes</h3>
+    <pre class="console"> column_name |        data_type         | is_nullable
+-------------+--------------------------+-------------
+ Id          | integer                  | NO
+ Name        | character varying        | NO
+ Category    | character varying        | NO
+ Quantity    | integer                  | NO
+ Location    | character varying        | NO
+ Weight      | numeric                  | NO
+ Description | character varying        | NO
+ IsAvailable | boolean                  | NO
+ CreatedAt   | timestamp with time zone | NO
+ Supplier    | character varying        | NO</pre>
+
+    <h3>История миграций</h3>
+    <pre class="console">         MigrationId          | ProductVersion
+------------------------------+----------------
+ 20261101210710_InitialCreate | 9.0.11
+ 20261101210747_AddCreatedAt  | 9.0.11
+ 20261101210825_SeedCargoes   | 9.0.11
+ 20261101210925_AddSupplier   | 9.0.11</pre>
+
+    <h3>Начальные данные</h3>
+    <pre class="console"> Id |               Name                |    Category     | Weight |     Supplier
+----+-----------------------------------+-----------------+--------+-------------------
+  1 | Ноутбуки Dell Latitude 5440       | Электроника     |  2.400 | Dell Technologies
+  2 | Офисные кресла ErgoPro            | Мебель          | 12.500 | ErgoPro
+  3 | Кофемашины Jura E8                | Бытовая техника |  9.800 | Jura
+  4 | Наборы строительного инструмента  | Инструменты     | 25.000 | ИнструментТорг
+  5 | Медицинские маски                 | Медицина        |  0.005 | МедСнаб
+  6 | Серверное оборудование Supermicro | Электроника     | 18.600 | Supermicro</pre>
+
+    <div class="callout">
+        <span class="label">Проверка SQL</span>
+        Запрос <code>SELECT "Name", "Weight" FROM "Cargoes" WHERE "Weight" &gt; 10</code>
+        соответствует LINQ-запросу
+        <code>db.Cargoes.Where(c =&gt; c.Weight &gt; 10)</code>. EF Core преобразует
+        LINQ в SQL и выполняет фильтрацию на стороне PostgreSQL.
+    </div>
+
+    <div class="footer"><span><b>CargoFlow API</b> · WT-7 PostgreSQL + EF Core</span><span class="pnum">07</span></div>
+</section>
+
+<!-- 08. CRUD -->
+<section class="sheet">
+    <div class="page-head"><span class="kicker">CRUD через EF Core</span><span class="page-tag">08 / 13</span></div>
+    <h1>Операции с данными</h1>
+
+    <p class="lead">
+        Все endpoint'ы получают <code>AppDbContext</code> через параметры Minimal API.
+        <code>CargoStore</code> удалён: чтение и запись выполняются через
+        <code>DbSet&lt;Cargo&gt;</code> и <code>SaveChangesAsync()</code>.
+    </p>
+
+    <h3>Чтение списка и объекта</h3>
+    <pre class="code">app.MapGet("/api/cargoes", async (AppDbContext db) =&gt;
+{
+    var cargoes = await db.Cargoes.AsNoTracking().ToListAsync();
+    return Results.Ok(cargoes);
+});
+
+app.MapGet("/api/cargoes/{id:int}", async (int id, AppDbContext db) =&gt;
+{
+    var cargo = await db.Cargoes.AsNoTracking()
+        .FirstOrDefaultAsync(x =&gt; x.Id == id);
+    return cargo is null ? Results.NotFound() : Results.Ok(cargo);
+});</pre>
+
+    <h3>Создание</h3>
+    <pre class="code">app.MapPost("/api/cargoes", async (Cargo input, AppDbContext db) =&gt;
+{
+    Normalize(input);
+    var errors = Validate(input);
+    if (errors.Count &gt; 0) return Results.ValidationProblem(errors);
+
+    input.Id = 0;
+    input.CreatedAt = DateTime.UtcNow;
+    db.Cargoes.Add(input);
+    await db.SaveChangesAsync();
+
+    return Results.Created($"/api/cargoes/{input.Id}", input);
+});</pre>
+
+    <h3>Изменение и удаление</h3>
+    <pre class="code">app.MapPut("/api/cargoes/{id:int}", async (int id, Cargo input, AppDbContext db) =&gt;
+{
+    var cargo = await db.Cargoes.FirstOrDefaultAsync(x =&gt; x.Id == id);
+    if (cargo is null) return Results.NotFound();
+
+    cargo.Name = input.Name;
+    cargo.Category = input.Category;
+    cargo.Quantity = input.Quantity;
+    cargo.Location = input.Location;
+    cargo.Weight = input.Weight;
+    cargo.Description = input.Description;
+    cargo.IsAvailable = input.IsAvailable;
+    cargo.Supplier = input.Supplier;
+
+    await db.SaveChangesAsync();
+    return Results.Ok(cargo);
+});
+
+app.MapDelete("/api/cargoes/{id:int}", async (int id, AppDbContext db) =&gt;
+{
+    var cargo = await db.Cargoes.FirstOrDefaultAsync(x =&gt; x.Id == id);
+    if (cargo is null) return Results.NotFound();
+
+    db.Cargoes.Remove(cargo);
+    await db.SaveChangesAsync();
+    return Results.NoContent();
+});</pre>
+
+    <div class="note">
+        EF Core отслеживает изменения загруженных сущностей. Для <code>PUT</code>
+        достаточно изменить свойства и вызвать <code>SaveChangesAsync()</code> —
+        ORM сам сформирует <code>UPDATE</code>. Для <code>DELETE</code> —
+        <code>Remove()</code> и <code>SaveChangesAsync()</code>.
+    </div>
+
+    <div class="footer"><span><b>CargoFlow API</b> · WT-7 PostgreSQL + EF Core</span><span class="pnum">08</span></div>
+</section>
+
+<!-- 09. LINQ -->
+<section class="sheet">
+    <div class="page-head"><span class="kicker">LINQ</span><span class="page-tag">09 / 13</span></div>
+    <h1>Запросы LINQ и SQL</h1>
+
+    <p class="lead">
+        В проекте реализовано больше трёх LINQ-запросов: фильтрация, сортировка,
+        выборка с условием, группировка с агрегатами и выборка по дате.
+        EF Core транслирует их в SQL и выполняет в PostgreSQL.
+    </p>
+
+    <h3>Фильтрация</h3>
+    <pre class="code">var heavy = await db.Cargoes
+    .Where(cargo =&gt; cargo.Weight &gt; 10)
+    .ToListAsync();</pre>
+
+    <h3>Сортировка</h3>
+    <pre class="code">var byWeight = await db.Cargoes
+    .OrderBy(cargo =&gt; cargo.Weight)
+    .ToListAsync();</pre>
+
+    <h3>Выборка с условием</h3>
+    <pre class="code">var available = await db.Cargoes
+    .Where(cargo =&gt; cargo.IsAvailable)
+    .OrderBy(cargo =&gt; cargo.Name)
+    .ToListAsync();</pre>
+
+    <h3>Собственный запрос: группировка и агрегаты</h3>
+    <pre class="code">var stats = await db.Cargoes
+    .GroupBy(cargo =&gt; cargo.Category)
+    .Select(group =&gt; new
+    {
+        Category = group.Key,
+        Count = group.Count(),
+        TotalQuantity = group.Sum(cargo =&gt; cargo.Quantity),
+        TotalWeight = group.Sum(cargo =&gt; cargo.Weight * cargo.Quantity),
+        AvailableCount = group.Count(cargo =&gt; cargo.IsAvailable)
+    })
+    .OrderByDescending(item =&gt; item.TotalWeight)
+    .ToListAsync();</pre>
+
+    <h3>LINQ и соответствующий SQL</h3>
+    <table class="meta compact">
+        <tr><th style="width:62mm">LINQ</th><th>SQL</th></tr>
+        <tr><td><code>Where(c =&gt; c.Weight &gt; 100)</code></td><td><code>WHERE "Weight" &gt; 100</code></td></tr>
+        <tr><td><code>OrderBy(c =&gt; c.Weight)</code></td><td><code>ORDER BY "Weight"</code></td></tr>
+        <tr><td><code>Where(c =&gt; c.IsAvailable)</code></td><td><code>WHERE "IsAvailable" = TRUE</code></td></tr>
+        <tr><td><code>GroupBy(c =&gt; c.Category)</code></td><td><code>GROUP BY "Category"</code></td></tr>
+        <tr><td><code>Count()</code>, <code>Sum()</code>, <code>Average()</code></td><td><code>COUNT()</code>, <code>SUM()</code>, <code>AVG()</code></td></tr>
+    </table>
+
+    <div class="callout">
+        <span class="label">Отличие от WT-6</span>
+        В WT-6 фильтрация выполнялась над <code>List&lt;Cargo&gt;</code> в памяти.
+        В WT-7 <code>db.Cargoes.Where(...)</code> формирует SQL-запрос, который
+        выполняется PostgreSQL. Это уменьшает объём передаваемых данных и использует
+        индексы базы.
+    </div>
+
+    <p class="small">
+        LINQ-endpoint'ы: <code>/api/cargoes/available</code>,
+        <code>/api/cargoes/heavy?minWeight=10</code>,
+        <code>/api/cargoes/stats</code>,
+        <code>/api/cargoes/recent?days=30</code>.
+    </p>
+
+    <div class="footer"><span><b>CargoFlow API</b> · WT-7 PostgreSQL + EF Core</span><span class="pnum">09</span></div>
+</section>
+
+<!-- 10. Docker и Render -->
+<section class="sheet">
+    <div class="page-head"><span class="kicker">Публикация</span><span class="page-tag">10 / 13</span></div>
+    <h1>Docker и Render</h1>
+
+    <p class="lead">
+        Приложение собирается в Docker-образ по тому же принципу, что и в WT-6,
+        но теперь при старте подключается к PostgreSQL и автоматически применяет
+        миграции. На Render строка подключения передаётся через <code>DATABASE_URL</code>.
+    </p>
+
+    <h3>Dockerfile</h3>
+    <pre class="code">FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+WORKDIR /src
+COPY wt-lab7-7postgres-efcore-yushkevich.csproj ./
+RUN dotnet restore
+COPY . .
+RUN dotnet publish wt-lab7-7postgres-efcore-yushkevich.csproj \
+    -c Release -o /app/publish /p:UseAppHost=false
+
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
+WORKDIR /app
+COPY --from=build /app/publish .
+ENV ASPNETCORE_URLS=http://0.0.0.0:10000
+ENV PORT=10000
+EXPOSE 10000
+ENTRYPOINT ["dotnet", "wt-lab7-7postgres-efcore-yushkevich.dll"]</pre>
+
+    <h3>Локальная проверка Docker Compose</h3>
+    <pre class="code">docker compose up --build
+# API:        http://localhost:10000
+# PostgreSQL: localhost:5432, база wt_lab7</pre>
+
+    <h3>Публикация на Render</h3>
+    <ol>
+        <li>Создать PostgreSQL: <strong>New → PostgreSQL</strong>, имя <code>wt-lab7-db-yushkevich</code>.</li>
+        <li>Создать <strong>Web Service</strong> из GitHub-репозитория WT-7, Runtime — <strong>Docker</strong>.</li>
+        <li>В <strong>Environment</strong> добавить <code>DATABASE_URL</code> = <strong>Internal Database URL</strong>.</li>
+        <li>Выполнить Deploy и дождаться статуса <strong>Live</strong>.</li>
+        <li>Проверить <code>GET /api/info</code> и <code>GET /api/cargoes</code>.</li>
+    </ol>
+
+    <div class="tree">Application starting
+        ↓
+Connection to PostgreSQL
+        ↓
+EF Core
+        ↓
+Migrations
+        ↓
+Application started</div>
+
+    <div class="note amber">
+        <strong>Секреты.</strong> Пароль PostgreSQL не хранится в
+        <code>Program.cs</code>, <code>appsettings.json</code> или Git-репозитории.
+        На Render значение <code>DATABASE_URL</code> задаётся только в настройках
+        Web Service. В отчёте и README полные строки подключения не публикуются.
+    </div>
+
+    <div class="footer"><span><b>CargoFlow API</b> · WT-7 PostgreSQL + EF Core</span><span class="pnum">10</span></div>
+</section>
+
+<!-- 11. Проверка API -->
+<section class="sheet">
+    <div class="page-head"><span class="kicker">Результаты</span><span class="page-tag">11 / 13</span></div>
+    <h1>Проверка REST API</h1>
+
+    <p class="lead">
+        API проверено локально после применения миграций: данные читаются из
+        PostgreSQL, полный цикл CRUD изменяет записи в базе, а документация
+        OpenAPI/Swagger/Scalar доступна по относительному адресу.
+    </p>
+
+    <div class="two-up">
+        <div class="figure">
+            <img src="report/assets/swagger.png" alt="Swagger UI" style="width:100%" />
+            <div class="figcaption"><b>Swagger UI:</b> все endpoint'ы и схемы</div>
+        </div>
+        <div class="figure">
+            <img src="report/assets/scalar.png" alt="Scalar UI" style="width:100%" />
+            <div class="figcaption"><b>Scalar UI:</b> интерактивная документация</div>
+        </div>
+    </div>
+
+    <h3>Ответ GET /api/cargoes из PostgreSQL</h3>
+    <div class="figure">
+        <img src="report/assets/api-cargoes.png" alt="GET /api/cargoes" style="width:100%" />
+        <div class="figcaption"><b>JSON-ответ:</b> шесть грузов, поля <code>createdAt</code> и <code>supplier</code></div>
+    </div>
+
+    <table class="meta compact">
+        <tr><th>Запрос</th><th>Результат</th><th>Статус</th></tr>
+        <tr><td><code>GET /api/cargoes</code></td><td>6 записей из PostgreSQL</td><td class="status-ok">200 OK</td></tr>
+        <tr><td><code>GET /api/cargoes/1</code></td><td>объект найден</td><td class="status-ok">200 OK</td></tr>
+        <tr><td><code>GET /api/cargoes/999</code></td><td>объект отсутствует</td><td class="status-err">404 Not Found</td></tr>
+        <tr><td><code>GET /api/cargoes/search?search=ноут</code></td><td>1 запись</td><td class="status-ok">200 OK</td></tr>
+        <tr><td><code>POST /api/cargoes</code></td><td>создан <code>id = 7</code></td><td class="status-ok">201 Created</td></tr>
+        <tr><td><code>POST</code> с пустыми полями</td><td>ошибки валидации</td><td class="status-err">400 Bad Request</td></tr>
+        <tr><td><code>PUT /api/cargoes/7</code></td><td>данные обновлены</td><td class="status-ok">200 OK</td></tr>
+        <tr><td><code>DELETE /api/cargoes/7</code></td><td>запись удалена</td><td class="status-ok">204 No Content</td></tr>
+        <tr><td><code>GET /api/cargoes/7</code> после удаления</td><td>объект отсутствует</td><td class="status-err">404 Not Found</td></tr>
+    </table>
+
+    <div class="footer"><span><b>CargoFlow API</b> · WT-7 PostgreSQL + EF Core</span><span class="pnum">11</span></div>
+</section>
+
+<!-- 12. Итоги -->
+<section class="sheet">
+    <div class="page-head"><span class="kicker">Заключение</span><span class="page-tag">12 / 13</span></div>
+    <h1>Итоги работы</h1>
+
+    <p class="lead">
+        Проект WT-6 переведён с хранения в памяти на PostgreSQL через Entity Framework
+        Core. Предметная область, модель <code>Cargo</code> и контракт REST API сохранены,
+        а слой данных полностью заменён на ORM.
+    </p>
+
+    <h3>Что выполнено</h3>
+    <ul class="checklist">
+        <li>Подключены EF Core, Npgsql и <code>dotnet-ef</code>.</li>
+        <li>Создан <code>AppDbContext</code> с <code>DbSet&lt;Cargo&gt;</code>.</li>
+        <li>Удалён <code>Data/CargoStore.cs</code>; CRUD переведён на EF Core.</li>
+        <li>Созданы и применены четыре миграции Code First.</li>
+        <li>Структура PostgreSQL создана автоматически, история — в <code>__EFMigrationsHistory</code>.</li>
+        <li>Добавлены начальные данные через <code>HasData</code>.</li>
+        <li>Реализованы LINQ-запросы: фильтрация, сортировка, группировка, выборка по дате.</li>
+        <li>Настроено автоматическое применение миграций при запуске.</li>
+        <li>Подготовлены Dockerfile, Docker Compose и конфигурация Render через <code>DATABASE_URL</code>.</li>
+        <li>Проверены все CRUD-операции, HTTP-статусы и документация API.</li>
+    </ul>
+
+    <h3>Преимущества ORM</h3>
+    <div class="grid-2">
+        <div class="stat"><span class="n">Code First</span><span class="t">Модель описывается в C#, а не в SQL-скриптах</span></div>
+        <div class="stat"><span class="n">Миграции</span><span class="t">История изменений схемы хранится в Git</span></div>
+        <div class="stat"><span class="n">LINQ</span><span class="t">Запросы проверяются компилятором</span></div>
+        <div class="stat"><span class="n">PostgreSQL</span><span class="t">Данные сохраняются между перезапусками</span></div>
+    </div>
+
+    <div class="callout">
+        <span class="label">Результат</span>
+        Приложение собирается, запускается, подключается к PostgreSQL, применяет
+        миграции и возвращает данные из базы. Для публикации на Render достаточно
+        указать <code>DATABASE_URL</code> и выполнить Deploy; при каждом новом
+        <code>git push</code> Render пересобирает контейнер и применяет новые миграции.
+    </div>
+
+    <h3>Ссылки</h3>
+    <table class="meta compact">
+        <tr><td style="width:38mm">GitHub WT-6</td><td><a href="https://github.com/Balur77/wt-lab6-6minimalapi-yushkevich">github.com/Balur77/wt-lab6-6minimalapi-yushkevich</a></td></tr>
+        <tr><td>GitHub WT-7</td><td><a href="https://github.com/Balur77/wt-lab7-7postgres-efcore-yushkevich">github.com/Balur77/wt-lab7-7postgres-efcore-yushkevich</a></td></tr>
+        <tr><td>Render</td><td><a href="https://wt-lab7-7postgres-efcore-yushkevich.onrender.com">wt-lab7-7postgres-efcore-yushkevich.onrender.com</a></td></tr>
+        <tr><td>Лог тестирования</td><td><code>docs/api-testing.md</code></td></tr>
+    </table>
+
+    <div class="footer"><span><b>CargoFlow API</b> · WT-7 PostgreSQL + EF Core</span><span class="pnum">12</span></div>
+</section>
+
+<!-- 13. Контрольные вопросы -->
+<section class="sheet">
+    <div class="page-head"><span class="kicker">Контрольные вопросы</span><span class="page-tag">13 / 13</span></div>
+    <h1>Ключевые вопросы</h1>
+
+    <table class="meta compact">
+        <tr><th style="width:48mm">Вопрос</th><th>Ответ</th></tr>
+        <tr><td>Что такое ORM?</td><td>Слой, который отображает объекты C# на таблицы реляционной БД и берёт на себя формирование SQL.</td></tr>
+        <tr><td>Что такое <code>DbContext</code>?</td><td>Сессия работы с БД: набор сущностей, отслеживание изменений, <code>SaveChanges</code>, транзакции.</td></tr>
+        <tr><td>Что такое <code>DbSet</code>?</td><td>Набор сущностей одного типа, через который выполняются запросы и операции добавления/удаления.</td></tr>
+        <tr><td>Что означает Code First?</td><td>Модель и схема БД выводятся из C#-классов; миграции создаются по изменениям модели.</td></tr>
+        <tr><td>Что такое миграция?</td><td>Файл с инструкциями изменения схемы БД между двумя состояниями модели.</td></tr>
+        <tr><td>Зачем <code>migrations add</code>?</td><td>Сравнить модель с предыдущим снимком и сгенерировать код изменения схемы.</td></tr>
+        <tr><td>Зачем <code>database update</code>?</td><td>Применить неприменённые миграции к базе и записать их в историю.</td></tr>
+        <tr><td>Где хранится история?</td><td>В таблице <code>__EFMigrationsHistory</code>.</td></tr>
+        <tr><td><code>EnsureCreated</code> и <code>Migrate</code>?</td><td><code>EnsureCreated</code> создаёт схему без истории; <code>Migrate</code> применяет миграции. Вместе их использовать нельзя.</td></tr>
+        <tr><td>Что делает <code>Database.Migrate()</code>?</td><td>Применяет все отсутствующие миграции при старте приложения.</td></tr>
+        <tr><td>Что такое <code>DATABASE_URL</code>?</td><td>Переменная окружения Render со строкой подключения к PostgreSQL.</td></tr>
+        <tr><td>Почему пароль не в Git?</td><td>Репозиторий может быть публичным; секреты передаются через переменные окружения.</td></tr>
+        <tr><td>Что будет, если модель изменена без миграции?</td><td>Схема БД не совпадёт с моделью, и EF Core завершит запросы ошибкой отсутствующего столбца.</td></tr>
+    </table>
+
+    <div class="callout">
+        <span class="label">Вывод</span>
+        Entity Framework Core позволил сохранить структуру Minimal API и предметную
+        модель WT-6, заменив только слой хранения. Миграции обеспечивают
+        воспроизводимое создание и обновление PostgreSQL как локально, так и на Render.
+    </div>
+
+    <div class="footer"><span><b>CargoFlow API</b> · WT-7 PostgreSQL + EF Core</span><span class="pnum">13</span></div>
+</section>
+
+</body>
+</html>

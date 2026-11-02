@@ -346,3 +346,44 @@ GET http://localhost:10001/api/cargoes/1 -> 200 OK
 
 Поле `database` в ответе `/api/info` содержит `wt_lab7_docker`, что подтверждает
 подключение к базе через переменную `DATABASE_URL`.
+
+## Проверка на Render
+
+Публичный адрес: **https://wt-lab7-yushkevich.onrender.com**
+
+| Ресурс | Имя | Статус |
+| --- | --- | --- |
+| Web Service (Docker, free) | `wt-lab7-yushkevich` | Live |
+| PostgreSQL (free) | `wt-lab7-db-yushkevich` | Available, PostgreSQL 18 |
+
+При первом деплое приложение падало с ошибкой:
+
+```text
+Format of the initialization string does not conform to specification starting at index 0.
+```
+
+Причина: в `DATABASE_URL` был указан только hostname
+`dpg-dbk3va8ae00c73fp107g-a` вместо полной строки подключения. После замены
+значения на **Internal Database URL** вида
+`postgresql://user:password@host/database` деплой завершился успешно,
+`Database.Migrate()` применил четыре миграции, сервис перешёл в статус **Live**.
+
+Проверки production-среды (02.11.2026):
+
+```text
+GET  /api/info                      -> 200 OK, database = wt_lab7_db_yushkevich
+GET  /api/cargoes                   -> 200 OK, 6 записей
+GET  /api/cargoes/search?search=ноут-> 200 OK, 1 запись
+GET  /api/cargoes/stats             -> 200 OK, агрегаты по категориям
+GET  /api/cargoes/99999             -> 404 Not Found
+POST /api/cargoes                   -> 201 Created, id = 7
+GET  /api/cargoes/7                 -> 200 OK
+DELETE /api/cargoes/7               -> 204 No Content
+GET  /api/cargoes/7                 -> 404 Not Found
+GET  /openapi/v1.json               -> 200 OK
+GET  /scalar/v1                     -> 200 OK
+GET  /swagger/index.html            -> 200 OK
+```
+
+Тестовая запись `Render Smoke Test` создана и удалена; реальные строки
+подключения и пароль PostgreSQL в отчёт и репозиторий не записывались.

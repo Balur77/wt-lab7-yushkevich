@@ -28,7 +28,7 @@
         <div class="pill-row">
             <span class="pill">ASP.NET Core 9</span>
             <span class="pill">EF Core 9</span>
-            <span class="pill">PostgreSQL 16</span>
+            <span class="pill">PostgreSQL 16 / 18</span>
             <span class="pill">Code First</span>
             <span class="pill">Migrations</span>
             <span class="pill">Docker</span>
@@ -65,9 +65,9 @@
         </div>
 
         <div class="links-box">
-            Git-репозиторий: <a href="https://github.com/Balur77/wt-lab7-7postgres-efcore-yushkevich">github.com/Balur77/wt-lab7-7postgres-efcore-yushkevich</a><br />
-            Render: <a href="https://wt-lab7-7postgres-efcore-yushkevich.onrender.com">wt-lab7-7postgres-efcore-yushkevich.onrender.com</a>
-            <span class="small">(адрес активируется после создания Web Service)</span>
+            Git-репозиторий: <a href="https://github.com/Balur77/wt-lab7-yushkevich">github.com/Balur77/wt-lab7-yushkevich</a><br />
+            Render: <a href="https://wt-lab7-yushkevich.onrender.com">wt-lab7-yushkevich.onrender.com</a>
+            <span class="small">(Web Service Live, PostgreSQL Available, проверено 02.11.2026)</span>
         </div>
 
         <div class="cover-sign">
@@ -112,11 +112,11 @@
     <table class="meta compact">
         <tr><td style="width:35mm">Проект</td><td>wt-lab7-7postgres-efcore-yushkevich</td></tr>
         <tr><td>Предметная область</td><td>Склад и логистика, сущность <code>Cargo</code></td></tr>
-        <tr><td>Стек</td><td>.NET 9, ASP.NET Core Minimal API, EF Core 9, Npgsql, PostgreSQL 16</td></tr>
+        <tr><td>Стек</td><td>.NET 9, ASP.NET Core Minimal API, EF Core 9, Npgsql, PostgreSQL 16 (локально) / 18 (Render)</td></tr>
         <tr><td>Хранение</td><td>PostgreSQL, подход Code First, четыре миграции</td></tr>
         <tr><td>Документация</td><td><code>/openapi/v1.json</code>, <code>/swagger</code>, <code>/scalar/v1</code></td></tr>
         <tr><td>Контейнер</td><td>Docker, многоэтапная сборка, порт из <code>PORT</code></td></tr>
-        <tr><td>Публикация</td><td>Render Web Service (Docker) + Render PostgreSQL</td></tr>
+        <tr><td>Публикация</td><td>Render: Web Service <code>wt-lab7-yushkevich</code> + PostgreSQL <code>wt-lab7-db-yushkevich</code></td></tr>
     </table>
 
     <div class="footer"><span><b>CargoFlow API</b> · WT-7 PostgreSQL + EF Core</span><span class="pnum">02</span></div>
@@ -643,11 +643,19 @@ ENTRYPOINT ["dotnet", "wt-lab7-7postgres-efcore-yushkevich.dll"]</pre>
 # API:        http://localhost:10000
 # PostgreSQL: localhost:5432, база wt_lab7</pre>
 
-    <h3>Публикация на Render</h3>
+    <h3>Публикация на Render (выполнено)</h3>
+    <p>
+        Web Service <code>wt-lab7-yushkevich</code> и PostgreSQL
+        <code>wt-lab7-db-yushkevich</code> созданы в регионе Frankfurt.
+        Деплой завершился статусом <strong>Live</strong>, приложение подключилось
+        к базе и применило миграции:
+        <a href="https://wt-lab7-yushkevich.onrender.com/api/info">wt-lab7-yushkevich.onrender.com</a>.
+    </p>
     <ol>
         <li>Создать PostgreSQL: <strong>New → PostgreSQL</strong>, имя <code>wt-lab7-db-yushkevich</code>.</li>
         <li>Создать <strong>Web Service</strong> из GitHub-репозитория WT-7, Runtime — <strong>Docker</strong>.</li>
-        <li>В <strong>Environment</strong> добавить <code>DATABASE_URL</code> = <strong>Internal Database URL</strong>.</li>
+        <li>В <strong>Environment</strong> добавить <code>DATABASE_URL</code> = <strong>Internal Database URL</strong>
+            (полную строку <code>postgresql://…</code>, а не только hostname).</li>
         <li>Выполнить Deploy и дождаться статуса <strong>Live</strong>.</li>
         <li>Проверить <code>GET /api/info</code> и <code>GET /api/cargoes</code>.</li>
     </ol>
@@ -680,7 +688,10 @@ Application started</div>
     <p class="lead">
         API проверено локально после применения миграций: данные читаются из
         PostgreSQL, полный цикл CRUD изменяет записи в базе, а документация
-        OpenAPI/Swagger/Scalar доступна по относительному адресу.
+        OpenAPI/Swagger/Scalar доступна по относительному адресу. Те же проверки
+        выполнены на Render: <code>GET /api/cargoes</code> вернул 6 записей,
+        <code>POST → GET → DELETE</code> — статусы <code>201 → 200 → 204</code>,
+        отсутствующая запись — <code>404</code>.
     </p>
 
     <div class="two-up">
@@ -738,7 +749,8 @@ Application started</div>
         <li>Реализованы LINQ-запросы: фильтрация, сортировка, группировка, выборка по дате.</li>
         <li>Настроено автоматическое применение миграций при запуске.</li>
         <li>Подготовлены Dockerfile, Docker Compose и конфигурация Render через <code>DATABASE_URL</code>.</li>
-        <li>Проверены все CRUD-операции, HTTP-статусы и документация API.</li>
+        <li>Проект развёрнут на Render: Web Service <strong>Live</strong>, PostgreSQL <strong>Available</strong>.</li>
+        <li>Проверены все CRUD-операции, HTTP-статусы и документация API локально и на Render.</li>
     </ul>
 
     <h3>Преимущества ORM</h3>
@@ -752,16 +764,17 @@ Application started</div>
     <div class="callout">
         <span class="label">Результат</span>
         Приложение собирается, запускается, подключается к PostgreSQL, применяет
-        миграции и возвращает данные из базы. Для публикации на Render достаточно
-        указать <code>DATABASE_URL</code> и выполнить Deploy; при каждом новом
-        <code>git push</code> Render пересобирает контейнер и применяет новые миграции.
+        миграции и возвращает данные из базы. Проект опубликован на Render и
+        доступен по адресу <code>wt-lab7-yushkevich.onrender.com</code>; при каждом
+        новом <code>git push</code> Render пересобирает контейнер и применяет
+        новые миграции.
     </div>
 
     <h3>Ссылки</h3>
     <table class="meta compact">
         <tr><td style="width:38mm">GitHub WT-6</td><td><a href="https://github.com/Balur77/wt-lab6-6minimalapi-yushkevich">github.com/Balur77/wt-lab6-6minimalapi-yushkevich</a></td></tr>
-        <tr><td>GitHub WT-7</td><td><a href="https://github.com/Balur77/wt-lab7-7postgres-efcore-yushkevich">github.com/Balur77/wt-lab7-7postgres-efcore-yushkevich</a></td></tr>
-        <tr><td>Render</td><td><a href="https://wt-lab7-7postgres-efcore-yushkevich.onrender.com">wt-lab7-7postgres-efcore-yushkevich.onrender.com</a></td></tr>
+        <tr><td>GitHub WT-7</td><td><a href="https://github.com/Balur77/wt-lab7-yushkevich">github.com/Balur77/wt-lab7-yushkevich</a></td></tr>
+        <tr><td>Render</td><td><a href="https://wt-lab7-yushkevich.onrender.com">wt-lab7-yushkevich.onrender.com</a> (Live)</td></tr>
         <tr><td>Лог тестирования</td><td><code>docs/api-testing.md</code></td></tr>
     </table>
 

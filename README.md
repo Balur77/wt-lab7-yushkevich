@@ -12,9 +12,10 @@
 ## Ссылки
 
 - **Исходная работа WT-6:** https://github.com/Balur77/wt-lab6-6minimalapi-yushkevich
-- **GitHub WT-7:** https://github.com/Balur77/wt-lab7-7postgres-efcore-yushkevich
-- **Render:** https://wt-lab7-7postgres-efcore-yushkevich.onrender.com
-  (адрес начинает работать после создания Web Service и PostgreSQL на Render)
+- **GitHub WT-7:** https://github.com/Balur77/wt-lab7-yushkevich
+- **Render (работающий сервис):** https://wt-lab7-yushkevich.onrender.com
+  (Web Service `wt-lab7-yushkevich` + PostgreSQL `wt-lab7-db-yushkevich`,
+  регион Frankfurt, статус **Live**, проверено 02.11.2026)
 
 ## Что изменилось по сравнению с WT-6
 
@@ -173,10 +174,14 @@ dotnet ef database update
 Для Render используется переменная `DATABASE_URL`:
 
 ```text
-postgres://user:password@host:5432/database
+postgresql://user:password@host:5432/database
 ```
 
-`Program.cs` преобразует её в строку подключения Npgsql. Для внутреннего
+Важно: в `DATABASE_URL` нужно вставлять **полную** строку
+**Internal Database URL** со страницы PostgreSQL, а не только hostname.
+Иначе Npgsql выдаёт ошибку
+`Format of the initialization string does not conform to specification`.
+`Program.cs` преобразует URL в строку подключения Npgsql. Для внутреннего
 PostgreSQL Render используется `SSL Mode=Disable`, для внешнего адреса —
 TLS. Режим можно переопределить переменной `DATABASE_SSL_MODE`.
 
@@ -287,11 +292,22 @@ docker compose up --build
 
 ## Публикация на Render
 
+Проект уже развёрнут:
+
+| Ресурс | Имя | Статус |
+| --- | --- | --- |
+| Web Service (Docker, free) | `wt-lab7-yushkevich` | **Live** |
+| PostgreSQL (free) | `wt-lab7-db-yushkevich` | Available, PostgreSQL 18 |
+| Регион | Frankfurt (EU Central) | — |
+| Публичный адрес | https://wt-lab7-yushkevich.onrender.com | проверен |
+
+Порядок развёртывания с нуля:
+
 1. Создать PostgreSQL: **New → PostgreSQL**, имя `wt-lab7-db-yushkevich`.
 2. Создать **Web Service** из GitHub-репозитория WT-7.
 3. Указать Runtime: **Docker**, Dockerfile Path: `./Dockerfile`.
 4. В **Environment** добавить `DATABASE_URL` = **Internal Database URL**
-   созданной базы PostgreSQL.
+   созданной базы PostgreSQL (полную строку, начиная с `postgresql://`).
 5. Выполнить Deploy.
 6. Проверить `GET /api/info`, `GET /api/cargoes`, `GET /api/cargoes/1`.
 7. Убедиться, что в логах есть подключение к PostgreSQL, проверка и применение
@@ -299,11 +315,13 @@ docker compose up --build
 
 Альтернативно можно использовать Blueprint [`render.yaml`](render.yaml):
 он создаёт PostgreSQL и Web Service и автоматически передаёт строку подключения
-через `fromDatabase`.
+через `fromDatabase`. Blueprint удобен для развёртывания в новом аккаунте;
+в текущем аккаунте ресурсы созданы вручную.
 
-При каждом `git push` Render выполняет новый deploy. При старте приложения
-`Database.Migrate()` автоматически применяет новые миграции, поэтому структура
-PostgreSQL обновляется без ручного SQL.
+При каждом `git push` Render выполняет новый deploy (для этого в настройках
+сервиса включён Auto-Deploy). При старте приложения `Database.Migrate()`
+автоматически применяет новые миграции, поэтому структура PostgreSQL
+обновляется без ручного SQL.
 
 ## Проверка
 
@@ -329,6 +347,11 @@ PostgreSQL обновляется без ручного SQL.
 | `GET /swagger` | `301` → `/swagger/index.html` |
 | `docker build` | образ собран |
 | Docker + чистая БД `wt_lab7_docker` | все 4 миграции применены автоматически, API отвечает `200 OK` |
+| Render `GET /api/info` | `200 OK`, база `wt_lab7_db_yushkevich` |
+| Render `GET /api/cargoes` | `200 OK`, 6 записей из Render PostgreSQL |
+| Render `POST → GET → DELETE /api/cargoes` | `201` → `200` → `204`, запись удалена |
+| Render `GET /api/cargoes/99999` | `404 Not Found` |
+| Render `/scalar/v1`, `/swagger/index.html`, `/openapi/v1.json` | `200 OK` |
 
 Полный лог — [`docs/api-testing.md`](docs/api-testing.md).
 
@@ -338,7 +361,7 @@ PostgreSQL обновляется без ручного SQL.
 - ASP.NET Core Minimal API;
 - Entity Framework Core 9;
 - Npgsql.EntityFrameworkCore.PostgreSQL;
-- PostgreSQL 16;
+- PostgreSQL 16 локально (Docker) и PostgreSQL 18 на Render;
 - OpenAPI, Scalar UI, Swagger UI;
 - Docker и Docker Compose;
 - Render Web Service и Render PostgreSQL.
